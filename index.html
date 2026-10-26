@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="title">Carrot — Сборки Minecraft</title>
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', sans-serif;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #1B263B; /* Темно-синий */
+    color: #F72585; /* Малиновый */
+  }
+
+  /* ============ ФОНОВОЕ ИЗОБРАЖЕНИЕ ============ */
+  .background-image {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    background-image: url('https://images.unsplash.com/photo-1506744626753-1fa2443a04d6?q=80&w=2070&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    filter: blur(35px) brightness(0.25) sepia(1) hue-rotate(195deg) saturate(2.5); /* Тонирование в синий */
+    transform: scale(1.15);
+    transition: filter 0.9s ease, transform 0.9s ease;
+  }
+
+  .background-image.dimmed {
+    filter: blur(45px) brightness(0.15) sepia(1) hue-rotate(195deg) saturate(2.5);
+    transform: scale(1.2);
+  }
+
+  .background-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: rgba(27, 38, 59, 0.85); /* Плотный темно-синий оверлей */
+    transition: opacity 0.9s ease;
+  }
+
+  .background-overlay.dimmed {
+    opacity: 0.95;
+  }
+
+  /* ============ ШАПКА ============ */
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .header.hidden {
+    opacity: 0;
+    transform: translateY(-20px);
+    pointer-events: none;
+  }
+
+  /* Логотип */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #F72585;
+    cursor: pointer;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: #F72585;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1B263B;
+    font-size: 18px;
+  }
+
+  .nav-center {
+    display: flex;
+    align-items: center;
+    background: rgba(27, 38, 59, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 30px;
+    padding: 4px;
+    border: 1px solid rgba(247, 37, 133, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .nav-item {
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #F72585;
+    text-decoration: none;
+    border-radius: 25px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+    background: none;
+  }
+
+  .nav-item:hover { background: rgba(247, 37, 133, 0.1); }
+  .nav-item.active { background: #F72585; color: #1B263B; font-weight: 700; }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .suggest-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 24px; border-radius: 25px;
+    background: #F72585; color: #1B263B;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer; border: none;
+    transition: all 0.3s ease;
+  }
+  .suggest-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(247, 37, 133, 0.4); }
+
+  .lang-switch {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 25px;
+    background: rgba(247, 37, 133, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(247, 37, 133, 0.3);
+    cursor: pointer; font-size: 14px; font-weight: 600;
+    color: #F72585;
+    transition: all 0.3s ease;
+  }
+  .lang-switch:hover { background: rgba(247, 37, 133, 0.25); }
+
+  .social-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(247, 37, 133, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(247, 37, 133, 0.3);
+    cursor: pointer; transition: all 0.3s ease;
+  }
+  .social-btn:hover { background: rgba(247, 37, 133, 0.3); transform: scale(1.05); }
+  .social-btn svg { width: 20px; height: 20px; fill: #F72585; }
+
+  /* ============ ГЛАВНЫЙ ЭКРАН ============ */
+  .hero-section {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 20px;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .hero-section.hidden {
+    opacity: 0;
+    transform: scale(1.05);
+    pointer-events: none;
+  }
+
+  .hero-title {
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: #F72585;
+    margin-bottom: 24px;
+    max-width: 1000px;
+    text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+
+  .hero-subtitle {
+    font-size: clamp(1rem, 1.5vw, 1.25rem);
+    line-height: 1.6;
+    color: rgba(247, 37, 133, 0.8);
+    max-width: 700px;
+    margin-bottom: 48px;
+    font-weight: 500;
+  }
+
+  .hero-buttons {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .btn-primary {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    background: #F72585; color: #1B263B;
+    padding: 18px 36px; border-radius: 40px;
+    font-size: 16px; font-weight: 800;
+    text-decoration: none; border: none; cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(247, 37, 133, 0.3);
+  }
+  .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(247, 37, 133, 0.5); }
+
+  .btn-secondary {
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+    color: #F72585;
+    padding: 18px 36px; border-radius: 40px;
+    font-size: 16px; font-weight: 700;
+    text-decoration: none; border: 2px solid #F72585;
+    cursor: pointer; transition: all 0.3s ease;
+  }
+  .btn-secondary:hover { background: rgba(247, 37, 133, 0.1); transform: translateY(-3px); }
+
+  /* ============ СЕКЦИЯ СБОРОК ============ */
+  .packs-section {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    padding: 100px 40px;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateY(50px);
+    transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.2, 0.9, 0.3, 1);
+    pointer-events: none;
+    background: rgba(27, 38, 59, 0.95); /* Сплошной фон для читаемости */
+    backdrop-filter: blur(30px);
+  }
+
+  .packs-section.visible {
+    opacity: 1; transform: translateY(0); pointer-events: all;
+  }
+
+  .changelog {
+    max-width: 900px; margin: 0 auto 40px;
+    background: #F72585; color: #1B263B;
+    border-radius: 28px; padding: 24px 30px;
+    box-shadow: 0 20px 40px rgba(247, 37, 133, 0.2);
+    position: relative;
+  }
+  .changelog-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .changelog-header .badge { font-size: 0.75rem; font-weight: 800; padding: 6px 14px; background: #1B263B; color: #F72585; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; }
+  .changelog-header .title { font-size: 1rem; font-weight: 800; }
+  .changelog-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .changelog-list li { display: flex; align-items: flex-start; gap: 12px; font-size: 0.95rem; color: #1B263B; font-weight: 600; }
+  .changelog-list li .marker { flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 0.75rem; font-weight: 800; background: #1B263B; color: #F72585; }
+
+  .launcher-wrap { max-width: 900px; margin: 0 auto 50px; display: flex; justify-content: center; }
+  .launcher-btn { 
+    display: flex; align-items: center; justify-content: center; gap: 14px; 
+    padding: 18px 48px; border-radius: 30px; 
+    background: #F72585; color: #1B263B; 
+    font-size: 1rem; font-weight: 800; cursor: not-allowed; 
+    letter-spacing: 1px; text-transform: uppercase; position: relative; 
+    box-shadow: 0 15px 40px rgba(247, 37, 133, 0.3); opacity: 0.9;
+  }
+  .launcher-btn::before { content: '🔒'; position: absolute; top: -10px; right: -10px; width: 32px; height: 32px; background: #1B263B; color: #F72585; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; z-index: 5; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); }
+
+  .packs-grid { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 32px; }
+
+  .pack-card { 
+    background: rgba(27, 38, 59, 0.8); 
+    backdrop-filter: blur(20px);
+    border-radius: 36px; border: 2px solid rgba(247, 37, 133, 0.3);
+    padding: 32px 28px; display: flex; flex-direction: column; 
+    opacity: 0; transform: translateY(50px); position: relative;
+    transition: all 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  .packs-section.visible .pack-card { animation: cardReveal 0.8s forwards; }
+  .packs-section.visible .pack-card:nth-child(1) { animation-delay: 0.2s; }
+  .packs-section.visible .pack-card:nth-child(2) { animation-delay: 0.35s; }
+  @keyframes cardReveal { 0% { opacity: 0; transform: translateY(50px); } 100% { opacity: 1; transform: translateY(0); } }
+  
+  .pack-card:hover { transform: translateY(-10px); background: rgba(27, 38, 59, 0.95); border-color: #F72585; box-shadow: 0 25px 60px rgba(247, 37, 133, 0.25); }
+
+  .featured-badge { position: absolute; top: 24px; right: 24px; background: #F72585; color: #1B263B; font-size: 0.75rem; font-weight: 800; padding: 8px 18px; border-radius: 30px; z-index: 2; }
+  .example-badge { position: absolute; top: 24px; right: 24px; background: rgba(247, 37, 133, 0.2); color: #F72585; border: 2px solid #F72585; font-size: 0.75rem; font-weight: 800; padding: 8px 18px; border-radius: 30px; z-index: 2; }
+  
+  .card-icon { font-size: 3rem; margin-bottom: 16px; }
+  .card-title { font-size: 2rem; font-weight: 900; color: #F72585; margin-bottom: 8px; letter-spacing: -0.02em; }
+  .card-version { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 6px 16px; border-radius: 30px; background: rgba(247, 37, 133, 0.1); color: #F72585; margin-bottom: 20px; align-self: flex-start; }
+  .card-desc { color: rgba(247, 37, 133, 0.85); font-size: 1rem; line-height: 1.5; margin-bottom: 24px; flex: 1; font-weight: 500; }
+  .card-desc strong { color: #F72585; font-weight: 800; }
+  .card-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .card-tag { font-size: 0.75rem; padding: 6px 14px; border-radius: 20px; background: rgba(247, 37, 133, 0.05); border: 1px solid rgba(247, 37, 133, 0.3); color: #F72585; font-weight: 600; }
+
+  .view-btn, .download-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px; border-radius: 24px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: all 0.3s; border: none; }
+  .view-btn { background: transparent; color: #F72585; border: 2px solid #F72585; }
+  .download-btn { background: #F72585; color: #1B263B; box-shadow: 0 10px 20px rgba(247, 37, 133, 0.2); }
+  .view-btn:hover, .download-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(247, 37, 133, 0.5); }
+
+  /* ============ ТУМАН ПЕРЕХОДА ============ */
+  .fog-transition { position: fixed; inset: 0; z-index: 150; pointer-events: none; opacity: 0; background: #1B263B; display: flex; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
+  .fog-transition.active { opacity: 1; }
+  .fog-cloud { position: absolute; width: 200vw; height: 200vh; border-radius: 50%; background: radial-gradient(circle, rgba(247, 37, 133, 0.2) 0%, transparent 60%); filter: blur(100px); animation: fogPulse 1.2s ease-in-out infinite alternate; }
+  .fog-cloud-1 { top: -50%; left: -50%; }
+  .fog-cloud-2 { bottom: -50%; right: -50%; animation-delay: -0.5s; }
+  @keyframes fogPulse { 0% { transform: scale(1) translate(0, 0); opacity: 0.5; } 100% { transform: scale(1.4) translate(5%, 5%); opacity: 1; } }
+
+  /* ============ МОДАЛКИ ============ */
+  .modal-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(13, 19, 31, 0.8); backdrop-filter: blur(25px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; padding: 20px; }
+  .modal-overlay.active { opacity: 1; pointer-events: all; }
+  .modal-window { width: 600px; max-width: 100%; background: #1B263B; border-radius: 32px; border: 2px solid rgba(247, 37, 133, 0.4); overflow: hidden; transform: scale(0.9) translateY(20px); transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.3, 1); box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+  .modal-overlay.active .modal-window { transform: scale(1) translateY(0); }
+  
+  .modal-titlebar { height: 60px; background: rgba(247, 37, 133, 0.1); display: flex; align-items: center; padding: 0 24px; color: #F72585; font-weight: 800; font-size: 18px; border-bottom: 1px solid rgba(247, 37, 133, 0.2); }
+  .modal-titlebar .mb-title { flex: 1; }
+  .modal-titlebar .mb-ctrl { width: 14px; height: 14px; border-radius: 50%; border: none; cursor: pointer; }
+  .modal-titlebar .mb-ctrl.close { background: #F72585; }
+  .modal-titlebar .mb-ctrl.min { background: rgba(247, 37, 133, 0.5); }
+  .modal-titlebar .mb-ctrl.max { background: rgba(247, 37, 133, 0.3); }
+
+  .modal-body { padding: 24px; max-height: 60vh; overflow-y: auto; }
+  .modal-addressbar { display: flex; align-items: center; gap: 12px; padding: 12px 18px; background: rgba(247, 37, 133, 0.1); border-radius: 18px; margin-bottom: 20px; font-size: 14px; font-weight: 700; color: #F72585; }
+  .file-list { background: rgba(247, 37, 133, 0.05); border-radius: 24px; padding: 10px; }
+  .file-item { display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-radius: 16px; cursor: pointer; font-size: 14px; color: #F72585; transition: all 0.2s; }
+  .file-item:hover { background: rgba(247, 37, 133, 0.15); transform: translateX(6px); }
+  .file-icon { font-size: 28px; width: 40px; text-align: center; }
+  .file-info { flex: 1; display: flex; flex-direction: column; }
+  .file-name { font-weight: 800; font-size: 15px; }
+  .file-meta { font-size: 12px; opacity: 0.7; font-weight: 600; }
+  .file-size { font-size: 12px; opacity: 0.7; font-family: monospace; font-weight: 600; }
+  .modal-statusbar { margin-top: 16px; padding: 12px 18px; background: rgba(247, 37, 133, 0.1); border-radius: 16px; font-size: 12px; display: flex; justify-content: space-between; font-weight: 700; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 12px; padding: 20px 24px; background: rgba(247, 37, 133, 0.05); border-top: 1px solid rgba(247, 37, 133, 0.1); }
+  .modal-btn { padding: 12px 28px; background: transparent; border: 2px solid #F72585; border-radius: 18px; cursor: pointer; font-size: 14px; font-weight: 800; color: #F72585; transition: all 0.2s; }
+  .modal-btn:hover { background: rgba(247, 37, 133, 0.1); }
+  .modal-btn.primary { background: #F72585; color: #1B263B; border: none; }
+  .txt-viewer { background: rgba(247, 37, 133, 0.05); border-radius: 24px; padding: 24px; font-family: monospace; font-size: 14px; line-height: 1.7; color: #F72585; white-space: pre-wrap; }
+  
+  .suggest-window { max-width: 480px; text-align: center; padding: 40px 30px; }
+  .suggest-icon { font-size: 64px; margin-bottom: 20px; }
+  .suggest-text { font-size: 16px; line-height: 1.6; color: #F72585; margin-bottom: 30px; font-weight: 600; }
+  .suggest-go-btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: #F72585; color: #1B263B; padding: 16px 40px; border-radius: 30px; font-size: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 30px rgba(247, 37, 133, 0.2); transition: all 0.3s ease; width: 100%; max-width: 280px; margin: 0 auto; }
+  .suggest-go-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(247, 37, 133, 0.4); }
+
+  .error-toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8); z-index: 400; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 30px 40px; background: #F72585; border-radius: 32px; color: #1B263B; text-align: center; opacity: 0; pointer-events: none; transition: all 0.4s; box-shadow: 0 30px 80px rgba(0,0,0,0.6); }
+  .error-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .error-toast .error-icon { font-size: 48px; }
+  .error-toast .error-title { font-size: 20px; font-weight: 900; letter-spacing: 1px; }
+  .error-toast .error-text { font-size: 14px; opacity: 0.9; font-weight: 700; }
+
+  .particles-layer { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
+  .particle { position: absolute; border-radius: 50%; pointer-events: none; }
+
+  @media (max-width: 900px) {
+    .nav-center { display: none; }
+    .header { padding: 15px 20px; }
+    .hero-buttons { flex-direction: column; width: 100%; max-width: 300px; }
+    .btn-primary, .btn-secondary { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ФОН -->
+<div class="background-image" id="bgImage"></div>
+<div class="background-overlay" id="bgOverlay"></div>
+
+<!-- СЛОЙ ТУМАНА -->
+<div class="fog-transition" id="fogTransition">
+  <div class="fog-cloud fog-cloud-1"></div>
+  <div class="fog-cloud fog-cloud-2"></div>
+</div>
+
+<!-- ШАПКА -->
+<header class="header" id="header">
+  <div class="logo">
+    <div class="logo-icon">🥕</div>
+    Carrot
+  </div>
+
+  <div class="nav-center">
+    <button class="nav-item active" id="navHome">Главная</button>
+    <button class="nav-item" id="navCatalog">Каталог</button>
+  </div>
+
+  <div class="nav-right">
+    <button class="suggest-btn" id="suggestBtn">
+      <span>💡</span> <span data-i18n="suggestBtn">Предложка</span>
+    </button>
+
+    <div class="lang-switch" id="langSwitch">
+      <span id="langFlag">🇷🇺</span>
+      <span id="langCode">RU</span>
+    </div>
+
+    <a href="https://t.me/Carrotsite" target="_blank" class="social-btn">
+      <svg viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+    </a>
+  </div>
+</header>
+
+<!-- HERO СЕКЦИЯ -->
+<div class="hero-section" id="heroSection">
+  <h1 class="hero-title" data-i18n="heroTitle">
+    Сборки Minecraft<br>нового поколения
+  </h1>
+  <p class="hero-subtitle" data-i18n="heroSubtitle">
+    Открой для себя лучшие сборки с оптимизацией, уникальными модами и атмосферным геймплеем. Всё в одном месте.
+  </p>
+  <div class="hero-buttons">
+    <button class="btn-primary" id="startBtn">
+      <span data-i18n="heroBtn1">Смотреть каталог</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+    </button>
+    <button class="btn-secondary" id="watchBtn">
+      <span data-i18n="heroBtn2">Предложить идею</span>
+    </button>
+  </div>
+</div>
+
+<!-- СЕКЦИЯ СБОРОК (КАТАЛОГ) -->
+<section class="packs-section" id="packsSection">
+  <div class="changelog">
+    <div class="changelog-header">
+      <span class="badge" data-i18n="changeBadge">Обновление</span>
+      <span class="title" data-i18n="changeTitle">Последние изменения</span>
+    </div>
+    <ul class="changelog-list">
+      <li><span class="marker new">NEW</span><span data-i18n="change1">Новый контрастный дизайн</span></li>
+      <li><span class="marker new">NEW</span><span data-i18n="change2">Плавные анимации перелистывания</span></li>
+    </ul>
+  </div>
+
+  <div class="launcher-wrap">
+    <button class="launcher-btn" id="installLauncherBtn" data-i18n="installLauncher">Install Launcher</button>
+  </div>
+
+  <h2 style="text-align:center; font-size:2.5rem; font-weight:900; color:#F72585; margin-bottom:40px;">
+    <span data-i18n="sectionTitle">Наши сборки</span>
+  </h2>
+  
+  <div class="packs-grid">
+    <!-- Extract+ -->
+    <div class="pack-card featured">
+      <div class="featured-badge" data-i18n="badgeDown">Для скачивания</div>
+      <div class="card-icon">⚡</div>
+      <h3 class="card-title">Extract<span style="color:#fff;">+</span></h3>
+      <span class="card-version" data-i18n="extractVer">Fabric 26.2 • 31 мод</span>
+      <p class="card-desc" data-i18n="extractDesc">Лёгкая сборка, заточенная под <strong>максимальную оптимизацию</strong>. Автор добавил собственные твики.</p>
+      <div class="card-tags"><span class="card-tag" data-i18n="tagOpt">Оптимизация</span><span class="card-tag">FPS Boost</span></div>
+      <button class="download-btn" data-pack="Extract+"><span>⬇</span> <span data-i18n="btnDown">Скачать</span></button>
+    </div>
+
+    <!-- Medieval Realms -->
+    <div class="pack-card">
+      <div class="example-badge" data-i18n="badgeEx">Для примера</div>
+      <div class="card-icon">🏰</div>
+      <h3 class="card-title">Medieval Realms</h3>
+      <span class="card-version" data-i18n="medievalVer">Forge 1.18.2 • 180+ модов</span>
+      <p class="card-desc" data-i18n="medievalDesc">Средневековая RPG-сборка с замками, драконами и глубокой боевой системой.</p>
+      <div class="card-tags"><span class="card-tag">RPG</span><span class="card-tag" data-i18n="tagMed">Средневековье</span></div>
+      <button class="view-btn"><span>👁</span> <span data-i18n="btnView">Посмотреть</span></button>
+    </div>
+  </div>
+</section>
+
+<!-- МОДАЛКА СБОРОК -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-window">
+    <div class="modal-titlebar">
+      <div class="mb-title" id="modalTitle">Extract+</div>
+      <div style="display: flex; gap: 8px;">
+        <button class="mb-ctrl close" id="modalClose"></button>
+        <button class="mb-ctrl min"></button>
+        <button class="mb-ctrl max"></button>
+      </div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions" id="modalActions">
+      <button class="modal-btn" id="modalBack" style="display:none;" data-i18n="btnBack">← Назад</button>
+      <button class="modal-btn primary" id="modalOk"><span data-i18n="btnDownAll">Скачать всё</span></button>
+      <button class="modal-btn" id="modalCancel" data-i18n="btnCancel">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА ПРЕДЛОЖКИ -->
+<div class="modal-overlay" id="suggestOverlay">
+  <div class="modal-window suggest-window">
+    <div class="modal-titlebar" style="justify-content: center; background: rgba(247, 37, 133, 0.1);">
+      <div class="mb-title" style="text-align: center; color: #F72585;" data-i18n="suggestTitle">💡 Предложка</div>
+      <button class="mb-ctrl close" id="suggestClose" style="position: absolute; right: 24px;"></button>
+    </div>
+    <div class="modal-body">
+      <div class="suggest-icon">💌</div>
+      <p class="suggest-text" data-i18n="suggestText">Если ты хочешь предложить мод/сборку или идею для сайта —<br>пиши нам!</p>
+      <a href="https://t.me/Carrotsite?direct" target="_blank" class="suggest-go-btn">
+        <span data-i18n="suggestGo">Перейти в Telegram</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="error-toast" id="errorToast">
+  <div class="error-icon">⚠️</div>
+  <div class="error-title" data-i18n="errTitle">Неисправность</div>
+  <div class="error-text" data-i18n="errText">Админ закрыл нажатие на эту кнопку.</div>
+</div>
+
+<div class="particles-layer" id="particlesLayer"></div>
+
+<script>
+/* ============ СЛОВАРИ ПЕРЕВОДОВ ============ */
+const TRANSLATIONS = {
+  ru: {
+    title: 'Carrot — Сборки Minecraft',
+    suggestBtn: 'Предложка',
+    heroTitle: 'Сборки Minecraft<br>нового поколения',
+    heroSubtitle: 'Открой для себя лучшие сборки с оптимизацией, уникальными модами и атмосферным геймплеем. Всё в одном месте.',
+    heroBtn1: 'Смотреть каталог',
+    heroBtn2: 'Предложить идею',
+    changeBadge: 'Обновление',
+    changeTitle: 'Последние изменения',
+    change1: 'Новый контрастный дизайн',
+    change2: 'Плавные анимации перелистывания',
+    installLauncher: 'Install Launcher',
+    sectionTitle: 'Наши сборки',
+    badgeDown: 'Для скачивания',
+    extractVer: 'Fabric 26.2 • 31 мод',
+    extractDesc: 'Лёгкая сборка, заточенная под <strong>максимальную оптимизацию</strong>. Автор добавил собственные твики.',
+    tagOpt: 'Оптимизация',
+    btnDown: 'Скачать',
+    badgeEx: 'Для примера',
+    medievalVer: 'Forge 1.18.2 • 180+ модов',
+    medievalDesc: 'Средневековая RPG-сборка с замками, драконами и глубокой боевой системой.',
+    tagMed: 'Средневековье',
+    btnView: 'Посмотреть',
+    btnBack: '← Назад',
+    btnDownAll: 'Скачать всё',
+    btnCancel: 'Отмена',
+    suggestTitle: '💡 Предложка',
+    suggestText: 'Если ты хочешь предложить мод/сборку или идею для сайта —<br>пиши нам!',
+    suggestGo: 'Перейти в Telegram',
+    errTitle: 'Неисправность',
+    errText: 'Админ закрыл нажатие на эту кнопку.',
+    folderMods: 'Папка с модами',
+    folderRp: 'Папка с ресурспаками',
+    txtName: 'Читать!.txt',
+    txtMeta: 'Текстовый документ',
+    objects: 'объектов',
+    total: 'Всего',
+    modified: 'Изменён',
+    statusMods: '31 файл',
+    statusRp: '2 файла',
+    freeSpace: 'Свободно: 45,2 ГБ'
+  },
+  en: {
+    title: 'Carrot — Minecraft Modpacks',
+    suggestBtn: 'Suggest',
+    heroTitle: 'Minecraft Modpacks<br>of New Generation',
+    heroSubtitle: 'Discover the best modpacks with optimization, unique mods and atmospheric gameplay. All in one place.',
+    heroBtn1: 'View catalog',
+    heroBtn2: 'Suggest idea',
+    changeBadge: 'Update',
+    changeTitle: 'Latest changes',
+    change1: 'New contrasting design',
+    change2: 'Smooth page transition animations',
+    installLauncher: 'Install Launcher',
+    sectionTitle: 'Our modpacks',
+    badgeDown: 'For download',
+    extractVer: 'Fabric 26.2 • 31 mods',
+    extractDesc: 'Lightweight modpack focused on <strong>maximum optimization</strong>. The author added custom tweaks.',
+    tagOpt: 'Optimization',
+    btnDown: 'Download',
+    badgeEx: 'For example',
+    medievalVer: 'Forge 1.18.2 • 180+ mods',
+    medievalDesc: 'Medieval RPG modpack with castles, dragons, and deep combat system.',
+    tagMed: 'Medieval',
+    btnView: 'View',
+    btnBack: '← Back',
+    btnDownAll: 'Download all',
+    btnCancel: 'Cancel',
+    suggestTitle: '💡 Suggestions',
+    suggestText: 'If you want to suggest a mod/modpack or an idea for the site —<br>write to us!',
+    suggestGo: 'Go to Telegram',
+    errTitle: 'Malfunction',
+    errText: 'Admin has disabled this button.',
+    folderMods: 'Mods folder',
+    folderRp: 'Resourcepacks folder',
+    txtName: 'Read me!.txt',
+    txtMeta: 'Text document',
+    objects: 'objects',
+    total: 'Total',
+    modified: 'Modified',
+    statusMods: '31 files',
+    statusRp: '2 files',
+    freeSpace: 'Free: 45.2 GB'
+  }
+};
+
+let currentLang = localStorage.getItem('lang') || 'ru';
+function t(key) { return TRANSLATIONS[currentLang][key] || key; }
+
+/* ============ ЭЛЕМЕНТЫ ============ */
+const bgImage = document.getElementById('bgImage');
+const bgOverlay = document.getElementById('bgOverlay');
+const heroSection = document.getElementById('heroSection');
+const header = document.getElementById('header');
+const packsSection = document.getElementById('packsSection');
+const fogTransition = document.getElementById('fogTransition');
+
+const modalOverlay = document.getElementById('modalOverlay');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const modalBack = document.getElementById('modalBack');
+const modalOk = document.getElementById('modalOk');
+const modalCancel = document.getElementById('modalCancel');
+const modalClose = document.getElementById('modalClose');
+
+const suggestOverlay = document.getElementById('suggestOverlay');
+const suggestBtn = document.getElementById('suggestBtn');
+const suggestClose = document.getElementById('suggestClose');
+
+const installLauncherBtn = document.getElementById('installLauncherBtn');
+const errorToast = document.getElementById('errorToast');
+const startBtn = document.getElementById('startBtn');
+const watchBtn = document.getElementById('watchBtn');
+const navHome = document.getElementById('navHome');
+const navCatalog = document.getElementById('navCatalog');
+
+const langSwitch = document.getElementById('langSwitch');
+const langFlag = document.getElementById('langFlag');
+const langCode = document.getElementById('langCode');
+
+let isAnimating = false;
+const GOOGLE_DRIVE_URL = 'https://drive.google.com/drive/folders/1lhytl-c9QpeOXm2fptDZ4MMZ3ypz10YT?usp=drive_link';
+
+const FILES = {
+  mods: [
+    { name: 'skinlayers3d-fabric-1.6.0.jar', size: '1,890,348' },
+    { name: 'malilib-fabric-0.16.0.jar', size: '2,037,195' },
+    { name: 'punchy-2.8e-fabric-1.20.jar', size: '2,124,539' },
+    { name: 'jei-26.2-fabric-30.1.0.jar', size: '2,368,482' },
+    { name: 'fabric-api-0.161.0+1.21.4.jar', size: '2,566,123' },
+    { name: 'iris-fabric-1.11.4+mc1.21.4.jar', size: '2,821,616' },
+    { name: 'c2me-fabric-mc1.21.4-0.3.0.jar', size: '3,842,500' },
+    { name: 'fabric-language-kotlin-1.13.0.jar', size: '8,142,858' },
+    { name: 'sodium-fabric-0.6.5.jar', size: '1,245,890' },
+    { name: 'lithium-fabric-0.14.2.jar', size: '892,340' },
+    { name: 'ferritecore-7.0.0-fabric.jar', size: '1,120,450' },
+    { name: 'krypton-0.2.8-fabric.jar', size: '567,890' },
+    { name: 'starlight-1.5.0-fabric.jar', size: '734,220' },
+    { name: 'spatial-gui-1.0.0.jar', size: '45,120' },
+    { name: 'modmenu-11.0.0.jar', size: '678,900' },
+    { name: 'cloth-config-15.0.0.jar', size: '1,234,560' },
+    { name: 'reeses-sodium-options-1.8.jar', size: '234,560' },
+    { name: 'zoomify-2.14.0.jar', size: '156,780' },
+    { name: 'entityculling-1.7.0.jar', size: '345,670' },
+    { name: 'dynamic-fps-3.9.0.jar', size: '89,340' },
+    { name: 'moreculling-1.0.4.jar', size: '123,450' },
+    { name: 'noisium-2.3.0.jar', size: '234,560' },
+    { name: 'threadtweak-0.1.4.jar', size: '67,890' },
+    { name: 'very-many-players-1.2.jar', size: '345,670' },
+    { name: 'badoptimizations-2.1.4.jar', size: '123,400' },
+    { name: 'memoryleakfix-1.1.5.jar', size: '89,000' },
+    { name: 'fastanim-1.3.0.jar', size: '56,700' },
+    { name: 'fast-ip-ping-1.0.7.jar', size: '78,900' },
+    { name: 'ebe-2.0.0.jar', size: '234,500' },
+    { name: 'exordium-1.2.0.jar', size: '167,800' },
+    { name: 'cull-less-leaves-1.2.4.jar', size: '45,600' }
+  ],
+  resourcepacks: [
+    { name: '§alnvPet §6Fox §f...', size: '11,946' },
+    { name: 'Clean Inventory.zip', size: '249,115' }
+  ]
+};
+
+const TXT_CONTENT = `<span class="hl">РЕСУРСПАКИ:</span> ставить необязательно!
+
+<span class="hl">ПРИМЕР УСТАНОВКИ:</span>
+1. Создаём в лаунчере пустую сборку на <span class="hl2">26.2 fabric</span>
+2. Перекидываем моды из папки в папку <span class="hl2">mods</span>
+3. Запускаем
+
+<span class="hl">КОНФИГ:</span> при заходе с сборки, заходим в моды, ищем мод <span class="hl2">spatial gui</span>, в самом низу будет вкладка "Настройка автомасштабирования по FOV" заходим в неё, и в строке "базовое поле зрения для автомасштабирования" ставим значение <span class="hl2">80.0</span>
+
+Приятной игры!`;
+
+/* ============ ЯЗЫКИ ============ */
+function applyLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('lang', lang);
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (TRANSLATIONS[lang][key]) el.innerHTML = TRANSLATIONS[lang][key];
+  });
+  document.title = TRANSLATIONS[lang].title;
+  langFlag.textContent = lang === 'ru' ? '🇷🇺' : '🇬🇧';
+  langCode.textContent = lang === 'ru' ? 'RU' : 'EN';
+  document.documentElement.lang = lang;
+  if (modalOverlay.classList.contains('active')) {
+    if (modalTitle.textContent.includes('mods')) renderMods();
+    else if (modalTitle.textContent.includes('resourcepacks')) renderResourcepacks();
+    else if (modalTitle.textContent.includes('Read') || modalTitle.textContent.includes('Читать')) renderReadme();
+    else renderRoot();
+  }
+}
+
+langSwitch.addEventListener('click', (e) => {
+  e.stopPropagation();
+  applyLanguage(currentLang === 'ru' ? 'en' : 'ru');
+});
+
+/* ============ ПЕРЕХОД ============ */
+function playTransition() {
+  isAnimating = true;
+  fogTransition.classList.add('active');
+  
+  heroSection.classList.add('hidden');
+  bgImage.classList.add('dimmed');
+  bgOverlay.classList.add('dimmed');
+  header.classList.add('hidden');
+  
+  navHome.classList.remove('active');
+  navCatalog.classList.add('active');
+
+  setTimeout(() => {
+    packsSection.classList.add('visible');
+    packsSection.scrollTop = 0;
+  }, 400);
+
+  setTimeout(() => {
+    fogTransition.classList.remove('active');
+    isAnimating = false;
+  }, 800);
+}
+
+function returnHome() {
+  isAnimating = true;
+  fogTransition.classList.add('active');
+
+  packsSection.classList.remove('visible');
+  navCatalog.classList.remove('active');
+  navHome.classList.add('active');
+
+  setTimeout(() => {
+    heroSection.classList.remove('hidden');
+    bgImage.classList.remove('dimmed');
+    bgOverlay.classList.remove('dimmed');
+    header.classList.remove('hidden');
+  }, 400);
+
+  setTimeout(() => {
+    fogTransition.classList.remove('active');
+    isAnimating = false;
+  }, 800);
+}
+
+// Запускаем переход по кнопкам и навигации
+startBtn.addEventListener('click', playTransition);
+watchBtn.addEventListener('click', playTransition);
+navHome.addEventListener('click', returnHome);
+navCatalog.addEventListener('click', playTransition);
+
+// Скролл
+window.addEventListener('wheel', (e) => {
+  if (isAnimating) return;
+  if (modalOverlay.classList.contains('active') || suggestOverlay.classList.contains('active')) return;
+
+  if (!packsSection.classList.contains('visible') && e.deltaY > 0) {
+    playTransition();
+  } else if (packsSection.classList.contains('visible') && packsSection.scrollTop <= 0 && e.deltaY < 0) {
+    returnHome();
+  }
+});
+
+/* ============ КНОПКИ И МОДАЛКИ ============ */
+installLauncherBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  errorToast.classList.add('show');
+  setTimeout(() => errorToast.classList.remove('show'), 3200);
+});
+
+suggestBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  suggestOverlay.classList.add('active');
+});
+suggestClose.addEventListener('click', () => suggestOverlay.classList.remove('active'));
+suggestOverlay.addEventListener('click', (e) => {
+  if (e.target === suggestOverlay) suggestOverlay.classList.remove('active');
+});
+
+document.querySelectorAll('.download-btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    openModal();
+  });
+});
+
+function openModal() {
+  modalOverlay.classList.add('active');
+  renderRoot();
+}
+
+function closeModal() {
+  modalOverlay.classList.remove('active');
+}
+
+function renderRoot() {
+  modalTitle.textContent = 'Extract+';
+  modalBack.style.display = 'none';
+  modalOk.style.display = 'flex';
+
+  const html = `
+    <div class="modal-addressbar"><span>📁</span><span>Extract+</span></div>
+    <div class="file-list">
+      <div class="file-item folder" data-folder="mods">
+        <div class="file-icon">📁</div>
+        <div class="file-info"><div class="file-name">mods</div><div class="file-meta">${t('folderMods')}</div></div>
+        <div class="file-size">${t('statusMods')}</div>
+      </div>
+      <div class="file-item folder" data-folder="resourcepacks">
+        <div class="file-icon">📁</div>
+        <div class="file-info"><div class="file-name">resourcepacks</div><div class="file-meta">${t('folderRp')}</div></div>
+        <div class="file-size">${t('statusRp')}</div>
+      </div>
+      <div class="file-item txt" data-txt="readme">
+        <div class="file-icon">📄</div>
+        <div class="file-info"><div class="file-name">${t('txtName')}</div><div class="file-meta">${t('txtMeta')}</div></div>
+        <div class="file-size">2 КБ</div>
+      </div>
+    </div>
+    <div class="modal-statusbar"><span>3 ${t('objects')}</span><span>${t('freeSpace')}</span></div>
+  `;
+  modalBody.innerHTML = html;
+  attachFileEvents();
+}
+
+function renderMods() {
+  modalTitle.textContent = 'Extract+ → mods';
+  modalBack.style.display = 'block';
+  modalOk.style.display = 'none';
+
+  const filesHTML = FILES.mods.map(f => {
+    const isZip = f.name.toLowerCase().includes('.zip');
+    const iconText = isZip ? 'ZIP' : 'JAR';
+    return `
+      <div class="file-item ${isZip ? 'zip' : 'mod'}">
+        <div class="file-icon">${iconText}</div>
+        <div class="file-info"><div class="file-name">${f.name}</div><div class="file-meta">${isZip ? 'Архив ZIP' : 'Java Archive'}</div></div>
+        <div class="file-size">${f.size}</div>
+      </div>
+    `;
+  }).join('');
+
+  modalBody.innerHTML = `
+    <div class="modal-addressbar"><span>📁</span><span>Extract+ / mods</span></div>
+    <div class="file-list">${filesHTML}</div>
+    <div class="modal-statusbar"><span>${FILES.mods.length} ${t('objects')}</span><span>${t('total')}: ~30 МБ</span></div>
+  `;
+}
+
+function renderResourcepacks() {
+  modalTitle.textContent = 'Extract+ → resourcepacks';
+  modalBack.style.display = 'block';
+  modalOk.style.display = 'none';
+
+  const filesHTML = FILES.resourcepacks.map(f => `
+    <div class="file-item zip">
+      <div class="file-icon">ZIP</div>
+      <div class="file-info"><div class="file-name">${f.name}</div><div class="file-meta">Архив ZIP</div></div>
+      <div class="file-size">${f.size}</div>
+    </div>
+  `).join('');
+
+  modalBody.innerHTML = `
+    <div class="modal-addressbar"><span>📁</span><span>Extract+ / resourcepacks</span></div>
+    <div class="file-list">${filesHTML}</div>
+    <div class="modal-statusbar"><span>${FILES.resourcepacks.length} ${t('objects')}</span><span>${t('total')}: ~250 КБ</span></div>
+  `;
+}
+
+function renderReadme() {
+  modalTitle.textContent = t('txtName');
+  modalBack.style.display = 'block';
+  modalOk.style.display = 'none';
+
+  modalBody.innerHTML = `
+    <div class="modal-addressbar"><span>📄</span><span>Extract+ / ${t('txtName')}</span></div>
+    <div class="txt-viewer">${TXT_CONTENT}</div>
+    <div class="modal-statusbar"><span>2 КБ • UTF-8</span><span>${t('modified')}: 10/7/2026</span></div>
+  `;
+}
+
+function attachFileEvents() {
+  document.querySelectorAll('.file-item').forEach(item => {
+    item.addEventListener('click', function() {
+      if (this.dataset.folder === 'mods') setTimeout(renderMods, 150);
+      else if (this.dataset.folder === 'resourcepacks') setTimeout(renderResourcepacks, 150);
+      else if (this.dataset.txt === 'readme') setTimeout(renderReadme, 150);
+    });
+  });
+}
+
+modalBack.addEventListener('click', renderRoot);
+modalClose.addEventListener('click', closeModal);
+modalCancel.addEventListener('click', closeModal);
+
+modalOk.addEventListener('click', () => {
+  closeModal();
+  setTimeout(() => {
+    const link = document.createElement('a');
+    link.href = GOOGLE_DRIVE_URL;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, 500);
+});
+
+modalOverlay.addEventListener('click', (e) => {
+  if (e.target === modalOverlay) closeModal();
+});
+
+/* ============ ЧАСТИЦЫ ============ */
+const particlesLayer = document.getElementById('particlesLayer');
+const MAX_PARTICLES = 60;
+let particles = [];
+
+document.addEventListener('mousemove', (e) => {
+  if (particles.length >= MAX_PARTICLES) {
+    const oldest = particles.shift();
+    if (oldest && oldest.el.parentNode) oldest.el.parentNode.removeChild(oldest.el);
+  }
+  const count = Math.random() < 0.5 ? 1 : 2;
+  for (let i = 0; i < count; i++) createParticle(e.clientX, e.clientY);
+});
+
+function createParticle(x, y) {
+  const el = document.createElement('div');
+  el.className = 'particle';
+  const size = 3 + Math.random() * 9;
+  // Частицы в цветах темы
+  const colors = ['rgba(247, 37, 133, 0.9)', 'rgba(27, 38, 59, 0.9)'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+
+  el.style.width = size + 'px';
+  el.style.height = size + 'px';
+  el.style.background = `radial-gradient(circle at 30% 30%, #ffffff, ${color})`;
+  el.style.boxShadow = `0 0 ${size * 2}px ${color}`;
+  el.style.left = (x - size / 2) + 'px';
+  el.style.top = (y - size / 2) + 'px';
+
+  const angle = Math.random() * Math.PI * 2;
+  const distance = 20 + Math.random() * 60;
+  const dx = Math.cos(angle) * distance;
+  const dy = Math.sin(angle) * distance;
+
+  const animation = el.animate([
+    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+    { transform: `translate(${dx}px, ${dy}px) scale(0)`, opacity: 0 }
+  ], { duration: 700 + Math.random() * 600, easing: 'cubic-bezier(0.2, 0.8, 0.4, 1)', fill: 'forwards' });
+
+  particlesLayer.appendChild(el);
+  const particleObj = { el, animation };
+  particles.push(particleObj);
+  animation.onfinish = () => {
+    if (el.parentNode) el.parentNode.removeChild(el);
+    const idx = particles.indexOf(particleObj);
+    if (idx > -1) particles.splice(idx, 1);
+  };
+}
+
+/* Инициализация */
+applyLanguage(currentLang);
+</script>
+</body>
+</html>
